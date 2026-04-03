@@ -1,0 +1,182 @@
+// 喵喵输入法 Go 实现
+// 每个输入法是一个独立的包
+package meow
+
+import (
+	"log"
+
+	"github.com/EasyIME/pime-go/pime"
+)
+
+// IME 喵喵输入法结构
+type IME struct {
+	*pime.TextServiceBase
+	compositionString string
+	showCandidates    bool
+	candidateCursor   int
+}
+
+// 候选词列表
+var candidates = []string{"喵", "描", "秒", "妙"}
+
+// New 创建喵喵输入法实例
+func New(client *pime.Client) pime.TextService {
+	return &IME{
+		TextServiceBase:   pime.NewTextServiceBase(client),
+		compositionString: "",
+		showCandidates:    false,
+		candidateCursor:   0,
+	}
+}
+
+// HandleRequest 处理请求
+func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
+	resp := pime.NewResponse(req.SeqNum, true)
+
+	switch req.Method {
+	case "onActivate":
+		log.Println("喵喵输入法已激活")
+
+	case "onDeactivate":
+		log.Println("喵喵输入法已失活")
+
+	case "filterKeyDown":
+		return ime.filterKeyDown(req, resp)
+
+	case "onKeyDown":
+		return ime.onKeyDown(req, resp)
+
+	case "filterKeyUp":
+		resp.ReturnValue = 0
+
+	case "onCompositionTerminated":
+		// 清理状态
+		ime.compositionString = ""
+		ime.showCandidates = false
+		ime.candidateCursor = 0
+
+	case "onCommand":
+		log.Printf("收到命令: %v", req.Data)
+	}
+
+	return resp
+}
+
+// filterKeyDown 过滤按键
+func (ime *IME) filterKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
+	keyCode := req.KeyCode
+
+	// 如果组合字符串为空，不处理某些按键
+	if ime.compositionString == "" {
+		switch keyCode {
+		case 0x0D, // VK_RETURN
+			0x08, // VK_BACK
+			0x25, // VK_LEFT
+			0x26, // VK_UP
+			0x27, // VK_DOWN
+			0x28: // VK_RIGHT
+			resp.ReturnValue = 0 // 不处理
+			return resp
+		}
+	}
+
+	resp.ReturnValue = 1 // 处理
+	return resp
+}
+
+// onKeyDown 处理按键
+func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
+	keyCode := req.KeyCode
+	charCode := req.CharCode
+
+	// 处理 'm' 键 (109 或 77)
+	if charCode == 109 || charCode == 77 {
+		// 添加 '喵' 到组合字符串
+		if ime.compositionString == "" {
+			// 第一次按 'm'
+			ime.compositionString = "喵"
+			resp.CompositionString = ime.compositionString
+			resp.ReturnValue = 1
+		} else {
+			// 重复按 'm'，显示候选词
+			ime.showCandidates = true
+			resp.CompositionString = ime.compositionString
+			resp.CandidateList = candidates
+			resp.ShowCandidates = true
+			resp.ReturnValue = 1
+		}
+		return resp
+	}
+
+	// 处理数字键选择候选词
+	if keyCode >= 0x31 && keyCode <= 0x34 { // '1' - '4'
+		if ime.showCandidates {
+			index := int(keyCode - 0x31)
+			if index < len(candidates) {
+				// 提交选中的候选词
+				resp.CommitString = candidates[index]
+				// 重置状态
+				ime.compositionString = ""
+				ime.showCandidates = false
+				resp.CompositionString = ""
+				resp.ShowCandidates = false
+				resp.ReturnValue = 1
+				return resp
+			}
+		}
+	}
+
+	// 处理回车键 - 提交
+	if keyCode == 0x0D { // VK_RETURN
+		if ime.compositionString != "" {
+			resp.CommitString = ime.compositionString
+			// 重置状态
+			ime.compositionString = ""
+			ime.showCandidates = false
+			resp.CompositionString = ""
+			resp.ShowCandidates = false
+			resp.ReturnValue = 1
+			return resp
+		}
+	}
+
+	// 处理退格键
+	if keyCode == 0x08 { // VK_BACK
+		if ime.compositionString != "" {
+			// 清空组合字符串
+			ime.compositionString = ""
+			ime.showCandidates = false
+			resp.CompositionString = ""
+			resp.ShowCandidates = false
+			resp.ReturnValue = 1
+			return resp
+		}
+	}
+
+	// 处理 Escape 键
+	if keyCode == 0x1B { // VK_ESCAPE
+		if ime.compositionString != "" {
+			// 取消输入
+			ime.compositionString = ""
+			ime.showCandidates = false
+			resp.CompositionString = ""
+			resp.ShowCandidates = false
+			resp.ReturnValue = 1
+			return resp
+		}
+	}
+
+	// 其他按键不处理
+	resp.ReturnValue = 0
+	return resp
+}
+
+// Init 初始化
+func (ime *IME) Init(req *pime.Request) bool {
+	return true
+}
+
+// Close 关闭
+func (ime *IME) Close() {
+	// 清理资源
+}

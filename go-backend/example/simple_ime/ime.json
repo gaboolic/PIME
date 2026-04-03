@@ -1,0 +1,5 @@
+{
+  "name": "GoSimpleIME",
+  "icon": "icon.ico",
+  "backend": "go_simple_ime"
+}

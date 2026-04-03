@@ -1,0 +1,11 @@
+{
+    "name":"Fcitx5 输入法 (PIME - Go)",
+    "version": "0.1",
+    "guid": "{8F6E48A7-9C93-4D3E-8E8B-7C9A8F7D6E5C}",
+    "locale": "zh-Hans-CN",
+    "fallbackLocale": "zh-CN",
+    "icon": "icon.ico",
+    "win8_icon": "",
+    "moduleName": "fcitx5",
+    "serviceName": "Fcitx5TextService"
+}

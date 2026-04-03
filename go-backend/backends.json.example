@@ -1,0 +1,9 @@
+{
+  "backends": [
+    {
+      "name": "go_simple_ime",
+      "command": "C:\\Program Files (x86)\\PIME\\go\\simple_ime.exe",
+      "params": "-n simple"
+    }
+  ]
+}

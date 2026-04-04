@@ -11,6 +11,28 @@ const (
 	MsgPIME = "PIME_MSG"
 )
 
+type KeyStates []bool
+
+func (k *KeyStates) UnmarshalJSON(data []byte) error {
+	var bools []bool
+	if err := json.Unmarshal(data, &bools); err == nil {
+		*k = KeyStates(bools)
+		return nil
+	}
+
+	var ints []int
+	if err := json.Unmarshal(data, &ints); err == nil {
+		states := make(KeyStates, len(ints))
+		for i, v := range ints {
+			states[i] = v != 0
+		}
+		*k = states
+		return nil
+	}
+
+	return fmt.Errorf("invalid keyStates payload: %s", string(data))
+}
+
 // Request PIME请求结构
 type Request struct {
 	Method        string                 `json:"method"`
@@ -25,7 +47,7 @@ type Request struct {
 	RepeatCount   int                    `json:"repeatCount,omitempty"`
 	ScanCode      int                    `json:"scanCode,omitempty"`
 	IsExtended    bool                   `json:"isExtended,omitempty"`
-	KeyStates     []bool                 `json:"keyStates,omitempty"`
+	KeyStates     KeyStates              `json:"keyStates,omitempty"`
 	CompositionString string             `json:"compositionString,omitempty"`
 	CandidateList []string               `json:"candidateList,omitempty"`
 	ShowCandidates bool                  `json:"showCandidates,omitempty"`

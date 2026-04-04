@@ -103,13 +103,9 @@ RequestExecutionLevel admin
 var UPDATEX86DLL
 var UPDATEX64DLL
 var UPDATEARM64DLL
-
 var INST_PYTHON
 var INST_CINBASE
 var INST_NODE
-
-; The table file of Liu input method
-var LIU_UNI_TAB_FILE
 
 ; Uninstall old versions
 Function uninstallOldVersion
@@ -186,6 +182,7 @@ Function uninstallOldVersion
             Delete "$INSTDIR\backends.json"
 			RMDir /REBOOTOK /r "$INSTDIR\python"
 			RMDir /REBOOTOK /r "$INSTDIR\node"
+			RMDir /REBOOTOK /r "$INSTDIR\go-backend"
 
 			; Only exist in earlier versions, but need to delete it.
 			RMDir /REBOOTOK /r "$INSTDIR\server"
@@ -305,11 +302,14 @@ Function .onInit
 
 	File "/oname=$PLUGINSDIR\PIMETextService_x86.dll" "..\build\PIMETextService\Release\PIMETextService.dll"
 	File "/oname=$PLUGINSDIR\PIMETextService_x64.dll" "..\build64\PIMETextService\Release\PIMETextService.dll"
-	File "/oname=$PLUGINSDIR\PIMETextService_arm64.dll" "..\build_arm64\PIMETextService\Release\PIMETextService.dll"
+	File /nonfatal "/oname=$PLUGINSDIR\PIMETextService_arm64.dll" "..\build_arm64\PIMETextService\Release\PIMETextService.dll"
 
 	StrCpy $UPDATEX86DLL "True"
 	StrCpy $UPDATEX64DLL "True"
-	StrCpy $UPDATEARM64DLL "True"
+	StrCpy $UPDATEARM64DLL "False"
+	${If} ${FileExists} "$PLUGINSDIR\PIMETextService_arm64.dll"
+		StrCpy $UPDATEARM64DLL "True"
+	${EndIf}
 
 	StrCpy $INST_PYTHON "False"
 	StrCpy $INST_CINBASE "False"
@@ -450,6 +450,10 @@ Section $(SECTION_MAIN) SecMain
 
 	; Install the launcher responsible to launch the backends
 	File "..\build\PIMELauncher\Release\PIMELauncher.exe"
+
+	; Install the Go backend executable. Input methods are selected below.
+	SetOutPath "$INSTDIR\go-backend"
+	File "..\go-backend\build\go-backend\server.exe"
 SectionEnd
 
 SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
@@ -469,86 +473,12 @@ SectionGroup /e $(PYTHON_SECTION_GROUP) python_section_group
 			StrCpy $INST_CINBASE "True"
 		SectionEnd
 
-		Section $(CHELIU) cheliu
-            SectionIn 2
-            ; Ask the user to provide "liu-uni.tab" file
-            MessageBox MB_OK|MB_ICONQUESTION "$(SELECT_LIU_FILE)"
-            nsDialogs::SelectFileDialog open "" "liu-uni.tab file|liu-uni.tab"
-            Pop $LIU_UNI_TAB_FILE
-			${If} ${FileExists} "$LIU_UNI_TAB_FILE"
-				SetOutPath "$INSTDIR\python\input_methods\cheliu"
-				File /r "..\python\input_methods\cheliu\*.*"
-				SetOutPath "$INSTDIR\python\cinbase\cin"
-				StrCpy $INST_PYTHON "True"
-				StrCpy $INST_CINBASE "True"
-            ${Else}
-                MessageBox MB_OK|MB_ICONSTOP "$(CANNOT_INSTALL_LIU)"
-                StrCpy $LIU_UNI_TAB_FILE ""
-			${EndIf}
-		SectionEnd
-
-		Section $(CHEARRAY) chearray
-			SectionIn 2
-			SetOutPath "$INSTDIR\python\input_methods\chearray"
-			File /r "..\python\input_methods\chearray\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
-		SectionEnd
-
-		Section $(CHEDAYI) chedayi
-			SectionIn 2
-			SetOutPath "$INSTDIR\python\input_methods\chedayi"
-			File /r "..\python\input_methods\chedayi\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
-		SectionEnd
-
 		Section $(CHEPINYIN) chepinyin
 			SectionIn 2
 			SetOutPath "$INSTDIR\python\input_methods\chepinyin"
 			File /r "..\python\input_methods\chepinyin\*.*"
 			StrCpy $INST_PYTHON "True"
 			StrCpy $INST_CINBASE "True"
-		SectionEnd
-
-		Section $(CHESIMPLEX) chesimplex
-			SectionIn 2
-			SetOutPath "$INSTDIR\python\input_methods\chesimplex"
-			File /r "..\python\input_methods\chesimplex\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
-		SectionEnd
-
-		Section $(CHEPHONETIC) chephonetic
-			SectionIn 2
-			SetOutPath "$INSTDIR\python\input_methods\chephonetic"
-			File /r "..\python\input_methods\chephonetic\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
-		SectionEnd
-
-		Section $(CHEEZ) cheez
-			SectionIn 2
-			SetOutPath "$INSTDIR\python\input_methods\cheez"
-			File /r "..\python\input_methods\cheez\*.*"
-			StrCpy $INST_PYTHON "True"
-			StrCpy $INST_CINBASE "True"
-		SectionEnd
-
-		Section $(CHEENG) cheeng
-			${If} ${AtLeastWin8}
-				SectionIn 2
-				SetOutPath "$INSTDIR\python\input_methods\cheeng"
-				File /r "..\python\input_methods\cheeng\*.*"
-				StrCpy $INST_PYTHON "True"
-			${EndIf}
-		SectionEnd
-
-		Section $(BRAILLE_CHEWING) braille_chewing
-            SectionIn 2
-            SetOutPath "$INSTDIR\python\input_methods\braille_chewing"
-            File /r "..\python\input_methods\braille_chewing\*.*"
-            StrCpy $INST_PYTHON "True"
 		SectionEnd
 
     SectionGroupEnd
@@ -573,13 +503,6 @@ SectionGroupEnd
 
 SectionGroup /e $(NODE_SECTION_GROUP) node_section_group
 	SectionGroup /e $(NODE_CHT_SECTION_GROUP) node_cht_section_group
-		Section $(MCBOPOMOFO) McBopomofo
-				SectionIn 2
-				SetOutPath "$INSTDIR\node\input_methods\McBopomofo"
-				File /r "..\node\input_methods\McBopomofo\*.*"
-				StrCpy $INST_NODE "True"
-		SectionEnd
-
 		Section $(EMOJIME) emojime
 				SectionIn 2
 				SetOutPath "$INSTDIR\node\input_methods\emojime"
@@ -589,10 +512,33 @@ SectionGroup /e $(NODE_SECTION_GROUP) node_section_group
 	SectionGroupEnd
 SectionGroupEnd
 
+SectionGroup /e $(GO_SECTION_GROUP) go_section_group
+	Section $(GO_MEOW) go_meow
+		SectionIn 2
+		SetOutPath "$INSTDIR\go-backend\input_methods\meow"
+		File /r "..\go-backend\build\go-backend\input_methods\meow\*.*"
+	SectionEnd
+
+	Section $(GO_SIMPLE_PINYIN) go_simple_pinyin
+		SectionIn 2
+		SetOutPath "$INSTDIR\go-backend\input_methods\simple_pinyin"
+		File /r "..\go-backend\build\go-backend\input_methods\simple_pinyin\*.*"
+	SectionEnd
+
+	Section $(GO_RIME) go_rime
+		SectionIn 2
+		SetOutPath "$INSTDIR\go-backend\input_methods\rime"
+		File /r "..\go-backend\build\go-backend\input_methods\rime\*.*"
+	SectionEnd
+
+	Section $(GO_FCITX5) go_fcitx5
+		SectionIn 2
+		SetOutPath "$INSTDIR\go-backend\input_methods\fcitx5"
+		File /r "..\go-backend\build\go-backend\input_methods\fcitx5\*.*"
+	SectionEnd
+SectionGroupEnd
+
 Function hideSection
-	${IfNot} ${AtLeastWin8}
-		SectionSetText ${cheeng} ""
-	${EndIf}
 FunctionEnd
 
 Section "" Register
@@ -609,12 +555,6 @@ Section "" Register
 	${If} $INST_CINBASE == "True"
 		SetOutPath "$INSTDIR\python"
 		File /r /x "__pycache__" /x "cin" "..\python\cinbase"
-        ${If} ${SectionIsSelected} ${cheliu}
-            ; Convert the tab file to *.cin format first.
-            nsExec::ExecToLog '"$INSTDIR\python\python3\python.exe" "$INSTDIR\python\cinbase\tools\liu_unitab2cin.py" "$LIU_UNI_TAB_FILE" "$INSTDIR\python\cinbase\cin\liu.cin"'
-            ; Convert the liu.cin file to json format used by cinbase.
-            nsExec::ExecToLog '"$INSTDIR\python\python3\python.exe" "$INSTDIR\python\cinbase\tools\cintojson.py" "liu.cin"'
-        ${EndIf}
 	${EndIf}
 
 	; Install the node.js backend and input method modules along with an embedable version of node v6.
@@ -636,10 +576,11 @@ Section "" Register
 	${If} ${IsNativeARM64} ; This is a native ARM64 Windows system
 		SetOutPath "$INSTDIR\arm64"
 		${If} $UPDATEARM64DLL == "True"
-			File "..\build_arm64\PIMETextService\Release\PIMETextService.dll" ; put ARM64 PIMETextService.dll in arm64 folder
+			File /nonfatal "..\build_arm64\PIMETextService\Release\PIMETextService.dll" ; put ARM64 PIMETextService.dll in arm64 folder
+			${If} ${FileExists} "$INSTDIR\arm64\PIMETextService.dll"
+				ExecWait '"$SYSDIR\regsvr32.exe" /s "$INSTDIR\arm64\PIMETextService.dll"'
+			${EndIf}
 		${EndIf}
-		; Register COM objects (NSIS RegDLL command is broken and cannot be used)
-		ExecWait '"$SYSDIR\regsvr32.exe" /s "$INSTDIR\arm64\PIMETextService.dll"'
 	${EndIf}
 
 	SetOutPath "$INSTDIR\x86"
@@ -682,32 +623,8 @@ Section "" Register
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHECJ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config checj' "$INSTDIR\python\input_methods\checj\icon.ico" 0
 	${EndIf}
 
-	${If} ${SectionIsSelected} ${cheliu}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHELIU).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheliu' "$INSTDIR\python\input_methods\cheliu\icon.ico" 0
-	${EndIf}
-
-	${If} ${SectionIsSelected} ${chearray}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEARRAY).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chearray' "$INSTDIR\python\input_methods\chearray\icon.ico" 0
-	${EndIf}
-
-	${If} ${SectionIsSelected} ${chedayi}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEDAYI).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chedayi' "$INSTDIR\python\input_methods\chedayi\icon.ico" 0
-	${EndIf}
-
 	${If} ${SectionIsSelected} ${chepinyin}
 		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEPINYIN).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chepinyin' "$INSTDIR\python\input_methods\chepinyin\icon.ico" 0
-	${EndIf}
-
-	${If} ${SectionIsSelected} ${chesimplex}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHESIMPLEX).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chesimplex' "$INSTDIR\python\input_methods\chesimplex\icon.ico" 0
-	${EndIf}
-
-	${If} ${SectionIsSelected} ${chephonetic}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEPHONETIC).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config chephonetic' "$INSTDIR\python\input_methods\chephonetic\icon.ico" 0
-	${EndIf}
-
-	${If} ${SectionIsSelected} ${cheez}
-		CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(SET_CHEEZ).lnk" "$INSTDIR\python\python3\pythonw.exe" '"$INSTDIR\python\cinbase\configtool.py" config cheez' "$INSTDIR\python\input_methods\cheez\icon.ico" 0
 	${EndIf}
 
 	CreateShortCut "$SMPROGRAMS\$(PRODUCT_NAME)\$(UNINSTALL_PIME).lnk" "$INSTDIR\Uninstall.exe"
@@ -721,21 +638,17 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${python_chs_section_group} $(PYTHON_CHS_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${node_section_group} $(NODE_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${node_cht_section_group} $(NODE_CHT_SECTION_GROUP_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${go_section_group} $(GO_SECTION_GROUP_DESC)
 	;!insertmacro MUI_DESCRIPTION_TEXT ${node_chs_section_group} $(NODE_CHS_SECTION_GROUP_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chewing} $(chewing_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${checj} $(checj_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${cheliu} $(cheliu_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${chearray} $(chearray_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${chedayi} $(chedayi_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${chepinyin} $(chepinyin_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${chesimplex} $(chesimplex_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${chephonetic} $(chephonetic_DESC)
-    !insertmacro MUI_DESCRIPTION_TEXT ${cheez} $(cheez_DESC)
     !insertmacro MUI_DESCRIPTION_TEXT ${rime} $(rime_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${mcbopomofo} $(mcbopomofo_DESC)
 	!insertmacro MUI_DESCRIPTION_TEXT ${emojime} $(emojime_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${cheeng} $(cheeng_DESC)
-	!insertmacro MUI_DESCRIPTION_TEXT ${braille_chewing} $(braille_chewing_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${go_meow} $(go_meow_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${go_simple_pinyin} $(go_simple_pinyin_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${go_rime} $(go_rime_DESC)
+	!insertmacro MUI_DESCRIPTION_TEXT ${go_fcitx5} $(go_fcitx5_DESC)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;Uninstaller Section
@@ -761,8 +674,12 @@ Section "Uninstall"
 	${EndIf}
 
 	${If} ${IsNativeARM64}
-		ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\arm64\PIMETextService.dll"'
-		RMDir /REBOOTOK /r "$INSTDIR\arm64"
+		${If} ${FileExists} "$INSTDIR\arm64\PIMETextService.dll"
+			ExecWait '"$SYSDIR\regsvr32.exe" /u /s "$INSTDIR\arm64\PIMETextService.dll"'
+		${EndIf}
+		${If} ${FileExists} "$INSTDIR\arm64"
+			RMDir /REBOOTOK /r "$INSTDIR\arm64"
+		${EndIf}
 	${EndIf}
 
 	; Try to terminate running PIMELauncher and the server process
@@ -774,6 +691,7 @@ Section "Uninstall"
 	RMDir /REBOOTOK /r "$INSTDIR\x86"
 	RMDir /REBOOTOK /r "$INSTDIR\python"
 	RMDir /REBOOTOK /r "$INSTDIR\node"
+	RMDir /REBOOTOK /r "$INSTDIR\go-backend"
     Delete "$INSTDIR\backends.json"
 
 	; Delete shortcuts in Start Menu

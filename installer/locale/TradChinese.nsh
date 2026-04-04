@@ -26,6 +26,7 @@
 !insertmacro LANG_STRING NODE_SECTION_GROUP "Node 輸入法模組"
 !insertmacro LANG_STRING NODE_CHT_SECTION_GROUP "中文繁體"
 !insertmacro LANG_STRING NODE_CHS_SECTION_GROUP "中文簡體"
+!insertmacro LANG_STRING GO_SECTION_GROUP "Go 輸入法模組"
 
 !insertmacro LANG_STRING CHEWING 新酷音
 !insertmacro LANG_STRING CHECJ 酷倉
@@ -39,6 +40,10 @@
 !insertmacro LANG_STRING RIME 中州韻
 !insertmacro LANG_STRING MCBOPOMOFO 小麥注音
 !insertmacro LANG_STRING EMOJIME emojime
+!insertmacro LANG_STRING GO_MEOW "喵喵輸入法 (Go)"
+!insertmacro LANG_STRING GO_SIMPLE_PINYIN "簡單拼音 (Go)"
+!insertmacro LANG_STRING GO_RIME "中州韻 (Go)"
+!insertmacro LANG_STRING GO_FCITX5 "Fcitx5 (Go)"
 !insertmacro LANG_STRING CHEENG 英數
 !insertmacro LANG_STRING BRAILLE_CHEWING "點字酷音"
 
@@ -52,6 +57,7 @@
 !insertmacro LANG_STRING NODE_SECTION_GROUP_DESC "NODE 輸入法模組"
 !insertmacro LANG_STRING NODE_CHT_SECTION_GROUP_DESC "中文繁體"
 !insertmacro LANG_STRING NODE_CHS_SECTION_GROUP_DESC "中文簡體"
+!insertmacro LANG_STRING GO_SECTION_GROUP_DESC "Go 輸入法模組"
 !insertmacro LANG_STRING chewing_DESC "安裝新酷音輸入法模組。"
 !insertmacro LANG_STRING checj_DESC "安裝酷倉輸入法模組。"
 !insertmacro LANG_STRING cheliu_DESC "安裝蝦米輸入法模組。"
@@ -64,6 +70,10 @@
 !insertmacro LANG_STRING rime_DESC "安裝中州韻輸入法引擎，內含拼音、注音、倉頡、五筆、粵拼、吳語等數種輸入方案。"
 !insertmacro LANG_STRING mcbopomofo_DESC "安裝小麥注音輸入法模組。"
 !insertmacro LANG_STRING emojime_DESC "安裝 emojime 輸入法模組。"
+!insertmacro LANG_STRING go_meow_DESC "安裝 Go 喵喵輸入法模組。"
+!insertmacro LANG_STRING go_simple_pinyin_DESC "安裝 Go 簡單拼音輸入法模組。"
+!insertmacro LANG_STRING go_rime_DESC "安裝 Go 中州韻輸入法模組。"
+!insertmacro LANG_STRING go_fcitx5_DESC "安裝 Go Fcitx5 輸入法模組。"
 !insertmacro LANG_STRING cheeng_DESC "安裝英數輸入法模組。"
 !insertmacro LANG_STRING braille_chewing_DESC "安裝點字酷音輸入法模組。"
 

@@ -332,15 +332,49 @@ func loadInputMethods(server *Server) {
 	}
 }
 
-func main() {
-	// 设置日志
-	logFile, err := os.OpenFile("go_backend.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatal("无法创建日志文件:", err)
+func openLogFile() (*os.File, error) {
+	candidates := []string{}
+
+	if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
+		candidates = append(candidates, filepath.Join(localAppData, "PIME", "Logs", "go_backend.log"))
 	}
-	defer logFile.Close()
-	log.SetOutput(logFile)
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	if tempDir := os.TempDir(); tempDir != "" {
+		candidates = append(candidates, filepath.Join(tempDir, "PIME", "go_backend.log"))
+	}
+	candidates = append(candidates, "go_backend.log")
+
+	var lastErr error
+	for _, logPath := range candidates {
+		logDir := filepath.Dir(logPath)
+		if logDir != "." && logDir != "" {
+			if err := os.MkdirAll(logDir, 0755); err != nil {
+				lastErr = err
+				continue
+			}
+		}
+
+		logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err == nil {
+			return logFile, nil
+		}
+		lastErr = err
+	}
+
+	return nil, lastErr
+}
+
+func main() {
+	// 日志优先写入用户可写目录，避免安装到 Program Files 后启动失败。
+	logFile, err := openLogFile()
+	if err != nil {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		log.Printf("无法创建日志文件，改用标准错误输出: %v", err)
+	} else {
+		defer logFile.Close()
+		log.SetOutput(logFile)
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+	}
 
 	log.Println("=" + strings.Repeat("=", 50))
 	log.Println("PIME Go 后端启动")

@@ -26,6 +26,7 @@
 !insertmacro LANG_STRING NODE_SECTION_GROUP "Input method modules with Node"
 !insertmacro LANG_STRING NODE_CHT_SECTION_GROUP "Traditional Chinese"
 !insertmacro LANG_STRING NODE_CHS_SECTION_GROUP "Simplified Chinese"
+!insertmacro LANG_STRING GO_SECTION_GROUP "Input method modules with Go"
 
 !insertmacro LANG_STRING CHEWING "Chewing"
 !insertmacro LANG_STRING CHECJ "Cangjie"
@@ -39,6 +40,10 @@
 !insertmacro LANG_STRING RIME "Rime"
 !insertmacro LANG_STRING MCBOPOMOFO "McBopomofo"
 !insertmacro LANG_STRING EMOJIME "emojime"
+!insertmacro LANG_STRING GO_MEOW "Meow"
+!insertmacro LANG_STRING GO_SIMPLE_PINYIN "Simple Pinyin"
+!insertmacro LANG_STRING GO_RIME "Rime"
+!insertmacro LANG_STRING GO_FCITX5 "Fcitx5"
 !insertmacro LANG_STRING CHEENG "Eng-Num"
 !insertmacro LANG_STRING BRAILLE_CHEWING "Braille Chewing"
 
@@ -52,6 +57,7 @@
 !insertmacro LANG_STRING NODE_SECTION_GROUP_DESC "Input method modules with Node"
 !insertmacro LANG_STRING NODE_CHT_SECTION_GROUP_DESC "Traditional Chinese"
 !insertmacro LANG_STRING NODE_CHS_SECTION_GROUP_DESC "Simplified Chinese"
+!insertmacro LANG_STRING GO_SECTION_GROUP_DESC "Input method modules with Go"
 !insertmacro LANG_STRING chewing_DESC "Install Chewing input method module."
 !insertmacro LANG_STRING checj_DESC "Install Cangjie input method module."
 !insertmacro LANG_STRING cheliu_DESC "Install Shiamy input method module."
@@ -64,6 +70,10 @@
 !insertmacro LANG_STRING rime_DESC "Install Rime input method engine, 内含拼音、注音、仓颉、五笔、粤拼、吴语等数种输入方案。"
 !insertmacro LANG_STRING mcbopomofo_DESC "Install McBopomofo input method module."
 !insertmacro LANG_STRING emojime_DESC "Install emojime input method module."
+!insertmacro LANG_STRING go_meow_DESC "Install the Go Meow input method module."
+!insertmacro LANG_STRING go_simple_pinyin_DESC "Install the Go Simple Pinyin input method module."
+!insertmacro LANG_STRING go_rime_DESC "Install the Go Rime input method module."
+!insertmacro LANG_STRING go_fcitx5_DESC "Install the Go Fcitx5 input method module."
 !insertmacro LANG_STRING cheeng_DESC "Install Eng-Num input method module."
 !insertmacro LANG_STRING braille_chewing_DESC "Install Braille Chewing input method module."
 

@@ -41,6 +41,16 @@ type IME struct {
 	keyComposing    bool
 }
 
+func normalizeLetterCharCode(keyCode, charCode int) int {
+	if charCode != 0 {
+		return charCode
+	}
+	if keyCode >= 0x41 && keyCode <= 0x5A {
+		return keyCode + 32
+	}
+	return charCode
+}
+
 // New 创建 RIME 输入法实例
 func New(client *pime.Client) pime.TextService {
 	return &IME{
@@ -155,7 +165,7 @@ func (ime *IME) filterKeyDown(req *pime.Request, resp *pime.Response) *pime.Resp
 func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
 	// 简化实现：模拟 RIME 输入
 	keyCode := req.KeyCode
-	charCode := req.CharCode
+	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
 
 	// 处理 'n' 键
 	if charCode == 110 || charCode == 78 { // 'n' or 'N'

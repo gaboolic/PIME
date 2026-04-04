@@ -19,6 +19,16 @@ type IME struct {
 // 候选词列表
 var candidates = []string{"喵", "描", "秒", "妙"}
 
+func normalizeLetterCharCode(keyCode, charCode int) int {
+	if charCode != 0 {
+		return charCode
+	}
+	if keyCode >= 0x41 && keyCode <= 0x5A {
+		return keyCode + 32
+	}
+	return charCode
+}
+
 // New 创建喵喵输入法实例
 func New(client *pime.Client) pime.TextService {
 	return &IME{
@@ -87,7 +97,7 @@ func (ime *IME) filterKeyDown(req *pime.Request, resp *pime.Response) *pime.Resp
 // onKeyDown 处理按键
 func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
 	keyCode := req.KeyCode
-	charCode := req.CharCode
+	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
 
 	// 处理 'm' 键 (109 或 77)
 	if charCode == 109 || charCode == 77 {

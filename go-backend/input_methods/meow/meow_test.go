@@ -93,6 +93,19 @@ func TestOnKeyDownUppercaseMAlsoStartsComposition(t *testing.T) {
 	}
 }
 
+func TestOnKeyDownFallsBackToKeyCodeWhenCharCodeMissing(t *testing.T) {
+	ime := newTestIME()
+
+	resp := ime.onKeyDown(&pime.Request{SeqNum: 1, KeyCode: 0x4D}, pime.NewResponse(1, true))
+
+	if resp.ReturnValue != 1 {
+		t.Fatalf("expected keyCode-only M to be handled, got %d", resp.ReturnValue)
+	}
+	if resp.CompositionString != "喵" {
+		t.Fatalf("expected composition 喵 from keyCode fallback, got %q", resp.CompositionString)
+	}
+}
+
 func TestOnKeyDownSecondMShowsCandidates(t *testing.T) {
 	ime := newTestIME()
 	ime.compositionString = "喵"

@@ -44,6 +44,45 @@ type Server struct {
 	running   bool
 }
 
+func stringifyData(data map[string]interface{}) string {
+	if len(data) == 0 {
+		return ""
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Sprintf("<marshal error: %v>", err)
+	}
+	return string(raw)
+}
+
+func logRequestSummary(clientID string, req *pime.Request) {
+	log.Printf(
+		"收到请求 client=%s method=%s seq=%d id=%q keyCode=%d charCode=%d repeat=%d scan=%d composing=%q candidates=%d showCandidates=%t cursor=%d data=%s",
+		clientID,
+		req.Method,
+		req.SeqNum,
+		req.ID,
+		req.KeyCode,
+		req.CharCode,
+		req.RepeatCount,
+		req.ScanCode,
+		req.CompositionString,
+		len(req.CandidateList),
+		req.ShowCandidates,
+		req.CursorPos,
+		stringifyData(req.Data),
+	)
+}
+
+func logResponseSummary(clientID string, resp map[string]interface{}) {
+	raw, err := json.Marshal(resp)
+	if err != nil {
+		log.Printf("发送响应 client=%s marshal_error=%v", clientID, err)
+		return
+	}
+	log.Printf("发送响应 client=%s payload=%s", clientID, string(raw))
+}
+
 // NewServer 创建服务器
 func NewServer() *Server {
 	return &Server{
@@ -57,6 +96,7 @@ func NewServer() *Server {
 func (s *Server) RegisterService(guid string, factory ServiceFactory) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	guid = strings.ToLower(guid)
 	s.factories[guid] = factory
 	log.Printf("注册输入法服务: %s", guid)
 }
@@ -113,6 +153,8 @@ func (s *Server) handleMessage(line string) error {
 		return fmt.Errorf("解析 JSON 失败: %w", err)
 	}
 
+	logRequestSummary(clientID, &req)
+
 	// 处理请求
 	resp := s.handleRequest(clientID, &req)
 
@@ -133,7 +175,9 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 		if guid == "" && req.Data != nil {
 			guid, _ = req.Data["guid"].(string)
 		}
+		guid = strings.ToLower(guid)
 		if guid == "" {
+			log.Printf("初始化失败 client=%s seq=%d 原因=缺少guid id=%q data=%s", clientID, req.SeqNum, req.ID, stringifyData(req.Data))
 			return map[string]interface{}{
 				"seqNum":  req.SeqNum,
 				"success": false,
@@ -154,6 +198,7 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 		// 获取输入法服务工厂
 		factory, ok := s.factories[guid]
 		if !ok {
+			log.Printf("初始化失败 client=%s seq=%d 原因=未知输入法 guid=%s", clientID, req.SeqNum, guid)
 			return map[string]interface{}{
 				"seqNum":  req.SeqNum,
 				"success": false,
@@ -168,6 +213,7 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 		// 初始化服务
 		if !client.Service.Init(req) {
 			delete(s.clients, clientID)
+			log.Printf("初始化失败 client=%s seq=%d guid=%s 原因=Service.Init返回false", clientID, req.SeqNum, guid)
 			return map[string]interface{}{
 				"seqNum":  req.SeqNum,
 				"success": false,
@@ -175,6 +221,21 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 			}
 		}
 
+		log.Printf("初始化成功 client=%s seq=%d guid=%s windows8=%t metro=%t uiless=%t console=%t", clientID, req.SeqNum, guid, req.IsWindows8Above, req.IsMetroApp, req.IsUiLess, req.IsConsole)
+
+		return map[string]interface{}{
+			"seqNum":  req.SeqNum,
+			"success": true,
+		}
+
+	case "close":
+		if client, ok := s.clients[clientID]; ok {
+			client.Service.Close()
+			delete(s.clients, clientID)
+			log.Printf("客户端关闭 client=%s guid=%s", clientID, client.GUID)
+		} else {
+			log.Printf("客户端关闭 client=%s 但未找到已初始化会话", clientID)
+		}
 		return map[string]interface{}{
 			"seqNum":  req.SeqNum,
 			"success": true,
@@ -186,6 +247,7 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 		// 转发到输入法服务
 		client, ok := s.clients[clientID]
 		if !ok {
+			log.Printf("请求失败 client=%s seq=%d method=%s 原因=客户端未初始化", clientID, req.SeqNum, req.Method)
 			return map[string]interface{}{
 				"seqNum":  req.SeqNum,
 				"success": false,
@@ -193,10 +255,12 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 			}
 		}
 
+		log.Printf("转发请求 client=%s seq=%d method=%s guid=%s", clientID, req.SeqNum, req.Method, client.GUID)
 		resp := client.Service.HandleRequest(req)
 		return s.convertResponse(resp)
 
 	default:
+		log.Printf("请求失败 client=%s seq=%d method=%s 原因=未知方法", clientID, req.SeqNum, req.Method)
 		return map[string]interface{}{
 			"seqNum":  req.SeqNum,
 			"success": false,
@@ -207,6 +271,7 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 
 // sendResponse 发送响应
 func (s *Server) sendResponse(clientID string, resp map[string]interface{}) error {
+	logResponseSummary(clientID, resp)
 	data, err := json.Marshal(resp)
 	if err != nil {
 		return fmt.Errorf("序列化响应失败: %w", err)
@@ -289,6 +354,7 @@ func loadInputMethods(server *Server) {
 
 		guid, _ := imeConfig["guid"].(string)
 		name, _ := imeConfig["name"].(string)
+		guid = strings.ToLower(guid)
 		if guid == "" {
 			log.Printf("%s 缺少 guid", entry.Name())
 			continue

@@ -16,6 +16,16 @@ type IME struct {
 	dict       map[string][]string
 }
 
+func normalizeLetterCharCode(keyCode, charCode int) int {
+	if charCode != 0 {
+		return charCode
+	}
+	if keyCode >= 0x41 && keyCode <= 0x5A {
+		return keyCode + 32
+	}
+	return charCode
+}
+
 // New 创建拼音输入法实例
 func New(client *pime.Client) pime.TextService {
 	return &IME{
@@ -58,7 +68,7 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 // handleKeyDown 处理按键按下
 func (ime *IME) handleKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
 	keyCode := req.KeyCode
-	charCode := req.CharCode
+	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
 
 	// 处理回车键 - 提交当前拼音
 	if keyCode == 0x0D { // VK_RETURN

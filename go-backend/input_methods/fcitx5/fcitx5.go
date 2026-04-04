@@ -49,6 +49,16 @@ type IME struct {
 	context  Fcitx5Context
 }
 
+func normalizeLetterCharCode(keyCode, charCode int) int {
+	if charCode != 0 {
+		return charCode
+	}
+	if keyCode >= 0x41 && keyCode <= 0x5A {
+		return keyCode + 32
+	}
+	return charCode
+}
+
 // New 创建 Fcitx5 输入法实例
 func New(client *pime.Client) pime.TextService {
 	return &IME{
@@ -193,7 +203,7 @@ func (ime *IME) filterKeyDown(req *pime.Request, resp *pime.Response) *pime.Resp
 // onKeyDown 处理按键
 func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
 	keyCode := req.KeyCode
-	charCode := req.CharCode
+	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
 
 	// 检查是否使用真实的 Fcitx5
 	if ime.context != 0 {

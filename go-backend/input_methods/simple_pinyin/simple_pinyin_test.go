@@ -76,6 +76,22 @@ func TestHandleKeyDownUsesFallbackCandidatesForUnknownPinyin(t *testing.T) {
 	}
 }
 
+func TestHandleKeyDownFallsBackToKeyCodeWhenCharCodeMissing(t *testing.T) {
+	ime := newTestIME()
+
+	resp := ime.handleKeyDown(&pime.Request{
+		SeqNum:  1,
+		KeyCode: 0x4E,
+	}, pime.NewResponse(1, true))
+
+	if resp.ReturnValue != 1 {
+		t.Fatalf("expected keyCode-only N to be handled, got %d", resp.ReturnValue)
+	}
+	if resp.CompositionString != "n" {
+		t.Fatalf("expected composition n from keyCode fallback, got %q", resp.CompositionString)
+	}
+}
+
 func TestHandleKeyDownBackspaceUpdatesComposition(t *testing.T) {
 	ime := newTestIME()
 	ime.pinyin = "ni"

@@ -134,8 +134,26 @@ func TestServerHandleMessageInitUsesTopLevelID(t *testing.T) {
 	if client == nil {
 		t.Fatal("expected client to be registered after init")
 	}
-	if client.GUID != testMeowGUID {
-		t.Fatalf("expected guid %q, got %q", testMeowGUID, client.GUID)
+	if client.GUID != strings.ToLower(testMeowGUID) {
+		t.Fatalf("expected guid %q, got %q", strings.ToLower(testMeowGUID), client.GUID)
+	}
+}
+
+func TestServerHandleMessageInitAcceptsLowercaseGUID(t *testing.T) {
+	server := newTestServerWithMeow()
+
+	_, response := sendProtocolMessage(t, server, "client-lower", map[string]interface{}{
+		"method":          "init",
+		"seqNum":          1,
+		"id":              strings.ToLower(testMeowGUID),
+		"isWindows8Above": true,
+		"isMetroApp":      false,
+		"isUiLess":        false,
+		"isConsole":       false,
+	})
+
+	if response["success"] != true {
+		t.Fatalf("expected lowercase guid init success, got %#v", response)
 	}
 }
 
@@ -229,6 +247,32 @@ func TestServerHandleMessageUninitializedClientReturnsProtocolError(t *testing.T
 	}
 	if response["error"] != "客户端未初始化" {
 		t.Fatalf("expected protocol error for uninitialized client, got %#v", response["error"])
+	}
+}
+
+func TestServerHandleMessageCloseSucceeds(t *testing.T) {
+	server := newTestServerWithMeow()
+
+	sendProtocolMessage(t, server, "client-close", map[string]interface{}{
+		"method":          "init",
+		"seqNum":          1,
+		"id":              testMeowGUID,
+		"isWindows8Above": true,
+		"isMetroApp":      false,
+		"isUiLess":        false,
+		"isConsole":       false,
+	})
+
+	_, response := sendProtocolMessage(t, server, "client-close", map[string]interface{}{
+		"method": "close",
+		"seqNum": 2,
+	})
+
+	if response["success"] != true {
+		t.Fatalf("expected close success, got %#v", response)
+	}
+	if _, ok := server.clients["client-close"]; ok {
+		t.Fatal("expected client to be removed after close")
 	}
 }
 

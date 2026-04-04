@@ -41,6 +41,22 @@ func TestFilterKeyDownDelegatesToOnKeyDown(t *testing.T) {
 	}
 }
 
+func TestFilterKeyDownFallsBackToKeyCodeWhenCharCodeMissing(t *testing.T) {
+	ime := newTestIME()
+
+	resp := ime.filterKeyDown(&pime.Request{
+		SeqNum:  1,
+		KeyCode: 0x4E,
+	}, pime.NewResponse(1, true))
+
+	if resp.ReturnValue != 1 {
+		t.Fatalf("expected keyCode-only N to be handled, got %d", resp.ReturnValue)
+	}
+	if resp.CompositionString != "ni" {
+		t.Fatalf("expected composition ni from keyCode fallback, got %q", resp.CompositionString)
+	}
+}
+
 func TestOnKeyDownIRequiresExistingComposition(t *testing.T) {
 	ime := newTestIME()
 

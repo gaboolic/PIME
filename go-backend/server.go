@@ -127,10 +127,15 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 
 	switch req.Method {
 	case "init":
-		// 初始化客户端
-		guid, _ := req.Data["guid"].(string)
+		// PIME 在 init 时通过顶层 id 传递语言配置 GUID。
+		// 为了兼容已有调用，也接受 data.guid。
+		guid := req.ID
+		if guid == "" && req.Data != nil {
+			guid, _ = req.Data["guid"].(string)
+		}
 		if guid == "" {
 			return map[string]interface{}{
+				"seqNum":  req.SeqNum,
 				"success": false,
 				"error":   "缺少 guid",
 			}
@@ -138,14 +143,19 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 
 		// 创建客户端
 		client := &Client{
-			ID:   clientID,
-			GUID: guid,
+			ID:              clientID,
+			GUID:            guid,
+			IsWindows8Above: req.IsWindows8Above,
+			IsMetroApp:      req.IsMetroApp,
+			IsUiLess:        req.IsUiLess,
+			IsConsole:       req.IsConsole,
 		}
 
 		// 获取输入法服务工厂
 		factory, ok := s.factories[guid]
 		if !ok {
 			return map[string]interface{}{
+				"seqNum":  req.SeqNum,
 				"success": false,
 				"error":   fmt.Sprintf("未知的输入法: %s", guid),
 			}
@@ -159,12 +169,14 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 		if !client.Service.Init(req) {
 			delete(s.clients, clientID)
 			return map[string]interface{}{
+				"seqNum":  req.SeqNum,
 				"success": false,
 				"error":   "初始化失败",
 			}
 		}
 
 		return map[string]interface{}{
+			"seqNum":  req.SeqNum,
 			"success": true,
 		}
 
@@ -175,6 +187,7 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 		client, ok := s.clients[clientID]
 		if !ok {
 			return map[string]interface{}{
+				"seqNum":  req.SeqNum,
 				"success": false,
 				"error":   "客户端未初始化",
 			}
@@ -185,6 +198,7 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 
 	default:
 		return map[string]interface{}{
+			"seqNum":  req.SeqNum,
 			"success": false,
 			"error":   fmt.Sprintf("未知的方法: %s", req.Method),
 		}
@@ -193,13 +207,12 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 
 // sendResponse 发送响应
 func (s *Server) sendResponse(clientID string, resp map[string]interface{}) error {
-	resp["client_id"] = clientID
 	data, err := json.Marshal(resp)
 	if err != nil {
 		return fmt.Errorf("序列化响应失败: %w", err)
 	}
 
-	fmt.Println(string(data))
+	fmt.Printf("%s|%s|%s\n", pime.MsgPIME, clientID, string(data))
 	return nil
 }
 

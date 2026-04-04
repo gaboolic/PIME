@@ -47,6 +47,7 @@ type IME struct {
 	// Fcitx5 相关
 	instance Fcitx5Instance
 	context  Fcitx5Context
+	asciiMode bool
 }
 
 func normalizeLetterCharCode(keyCode, charCode int) int {
@@ -107,83 +108,8 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 
 // onActivate 激活输入法
 func (ime *IME) onActivate(req *pime.Request, resp *pime.Response) *pime.Response {
-	// 获取图标目录
-	exePath, err := os.Executable()
-	if err == nil {
-		exeDir := filepath.Dir(exePath)
-		iconDir := filepath.Join(exeDir, "input_methods", "fcitx5", "icons")
-		if dirExists(iconDir) {
-			log.Println("Fcitx5 图标目录:", iconDir)
-			// 添加托盘按钮
-			if ime.style.DisplayTrayIcon {
-				// 语言切换按钮
-				iconPath := filepath.Join(iconDir, "eng.ico")
-				if fileExists(iconPath) {
-					resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-						ID:        "switch-lang",
-						Icon:      iconPath,
-						Tooltip:   "中西文切换",
-						CommandID: ID_ASCII_MODE,
-					})
-				} else {
-					// 使用 rime 的图标作为备用
-					iconPath = filepath.Join(exeDir, "input_methods", "rime", "icons", "eng.ico")
-					if fileExists(iconPath) {
-						resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-							ID:        "switch-lang",
-							Icon:      iconPath,
-							Tooltip:   "中西文切换",
-							CommandID: ID_ASCII_MODE,
-						})
-					}
-				}
-
-				// 全半角切换按钮
-				iconPath = filepath.Join(iconDir, "full.ico")
-				if fileExists(iconPath) {
-					resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-						ID:        "switch-shape",
-						Icon:      iconPath,
-						Tooltip:   "全角/半角切换",
-						CommandID: ID_FULL_SHAPE,
-					})
-				} else {
-					iconPath = filepath.Join(exeDir, "input_methods", "rime", "icons", "full.ico")
-					if fileExists(iconPath) {
-						resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-							ID:        "switch-shape",
-							Icon:      iconPath,
-							Tooltip:   "全角/半角切换",
-							CommandID: ID_FULL_SHAPE,
-						})
-					}
-				}
-
-				// 设置按钮
-				iconPath = filepath.Join(iconDir, "config.ico")
-				if fileExists(iconPath) {
-					resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-						ID:      "settings",
-						Icon:    iconPath,
-						Tooltip: "设置",
-						Type:    "menu",
-					})
-				} else {
-					iconPath = filepath.Join(exeDir, "input_methods", "rime", "icons", "config.ico")
-					if fileExists(iconPath) {
-						resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-							ID:      "settings",
-							Icon:    iconPath,
-							Tooltip: "设置",
-							Type:    "menu",
-						})
-					}
-				}
-			}
-		}
-	}
-
 	log.Println("Fcitx5 输入法已激活")
+	pime.AddLangButtons(resp, ime.Client, ime.asciiMode, ID_MODE_ICON, ID_ASCII_MODE)
 	resp.ReturnValue = 1
 	return resp
 }
@@ -191,6 +117,7 @@ func (ime *IME) onActivate(req *pime.Request, resp *pime.Response) *pime.Respons
 // onDeactivate 失活输入法
 func (ime *IME) onDeactivate(req *pime.Request, resp *pime.Response) *pime.Response {
 	log.Println("Fcitx5 输入法已失活")
+	pime.RemoveLangButtons(resp, ime.Client)
 	resp.ReturnValue = 1
 	return resp
 }
@@ -204,6 +131,11 @@ func (ime *IME) filterKeyDown(req *pime.Request, resp *pime.Response) *pime.Resp
 func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
 	keyCode := req.KeyCode
 	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
+
+	if ime.asciiMode && req.CompositionString == "" && len(req.CandidateList) == 0 && charCode >= 0x20 {
+		resp.ReturnValue = 0
+		return resp
+	}
 
 	// 检查是否使用真实的 Fcitx5
 	if ime.context != 0 {
@@ -261,10 +193,12 @@ func (ime *IME) onCommand(req *pime.Request, resp *pime.Response) *pime.Response
 
 	switch int(commandID) {
 	case ID_MODE_ICON:
-		log.Println("点击模式图标")
+		ime.asciiMode = !ime.asciiMode
+		pime.ChangeLangButtons(resp, ime.Client, ime.asciiMode)
 
 	case ID_ASCII_MODE:
-		log.Println("切换中英文模式")
+		ime.asciiMode = !ime.asciiMode
+		pime.ChangeLangButtons(resp, ime.Client, ime.asciiMode)
 
 	case ID_FULL_SHAPE:
 		log.Println("切换全半角模式")

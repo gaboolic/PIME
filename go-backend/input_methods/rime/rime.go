@@ -4,8 +4,6 @@ package rime
 
 import (
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/EasyIME/pime-go/pime"
 )
@@ -39,6 +37,7 @@ type IME struct {
 	lastKeyUpCode   int
 	lastKeyUpRet    bool
 	keyComposing    bool
+	asciiMode       bool
 }
 
 func normalizeLetterCharCode(keyCode, charCode int) int {
@@ -99,52 +98,8 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 
 // onActivate 激活输入法
 func (ime *IME) onActivate(req *pime.Request, resp *pime.Response) *pime.Response {
-	// 获取图标目录
-	exePath, err := os.Executable()
-	if err == nil {
-		exeDir := filepath.Dir(exePath)
-		iconDir := filepath.Join(exeDir, "input_methods", "rime", "icons")
-		if dirExists(iconDir) {
-			log.Println("RIME 图标目录:", iconDir)
-			// 添加托盘按钮
-			if ime.style.DisplayTrayIcon {
-				// 语言切换按钮
-				iconPath := filepath.Join(iconDir, "eng.ico")
-				if fileExists(iconPath) {
-					resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-						ID:        "switch-lang",
-						Icon:      iconPath,
-						Tooltip:   "中西文切换",
-						CommandID: ID_ASCII_MODE,
-					})
-				}
-
-				// 全半角切换按钮
-				iconPath = filepath.Join(iconDir, "full.ico")
-				if fileExists(iconPath) {
-					resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-						ID:        "switch-shape",
-						Icon:      iconPath,
-						Tooltip:   "全角/半角切换",
-						CommandID: ID_FULL_SHAPE,
-					})
-				}
-
-				// 设置按钮
-				iconPath = filepath.Join(iconDir, "config.ico")
-				if fileExists(iconPath) {
-					resp.AddButton = append(resp.AddButton, pime.ButtonInfo{
-						ID:      "settings",
-						Icon:    iconPath,
-						Tooltip: "设置",
-						Type:    "menu",
-					})
-				}
-			}
-		}
-	}
-
 	log.Println("RIME 输入法已激活")
+	pime.AddLangButtons(resp, ime.Client, ime.asciiMode, ID_MODE_ICON, ID_ASCII_MODE)
 	resp.ReturnValue = 1
 	return resp
 }
@@ -152,6 +107,7 @@ func (ime *IME) onActivate(req *pime.Request, resp *pime.Response) *pime.Respons
 // onDeactivate 失活输入法
 func (ime *IME) onDeactivate(req *pime.Request, resp *pime.Response) *pime.Response {
 	log.Println("RIME 输入法已失活")
+	pime.RemoveLangButtons(resp, ime.Client)
 	resp.ReturnValue = 1
 	return resp
 }
@@ -166,6 +122,11 @@ func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response
 	// 简化实现：模拟 RIME 输入
 	keyCode := req.KeyCode
 	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
+
+	if ime.asciiMode && req.CompositionString == "" && len(req.CandidateList) == 0 && charCode >= 0x20 {
+		resp.ReturnValue = 0
+		return resp
+	}
 
 	// 处理 'n' 键
 	if charCode == 110 || charCode == 78 { // 'n' or 'N'
@@ -216,10 +177,12 @@ func (ime *IME) onCommand(req *pime.Request, resp *pime.Response) *pime.Response
 
 	switch int(commandID) {
 	case ID_MODE_ICON:
-		log.Println("点击模式图标")
+		ime.asciiMode = !ime.asciiMode
+		pime.ChangeLangButtons(resp, ime.Client, ime.asciiMode)
 
 	case ID_ASCII_MODE:
-		log.Println("切换中英文模式")
+		ime.asciiMode = !ime.asciiMode
+		pime.ChangeLangButtons(resp, ime.Client, ime.asciiMode)
 
 	case ID_FULL_SHAPE:
 		log.Println("切换全半角模式")
@@ -247,13 +210,3 @@ func (ime *IME) Close() {
 	log.Println("RIME 输入法关闭")
 }
 
-// 辅助函数
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && info.IsDir()
-}
-
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
-}

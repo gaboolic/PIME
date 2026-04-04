@@ -14,7 +14,13 @@ type IME struct {
 	pinyin     string
 	candidates []string
 	dict       map[string][]string
+	asciiMode  bool
 }
+
+const (
+	modeIconCommandID = 3100
+	langIconCommandID = 3101
+)
 
 func normalizeLetterCharCode(keyCode, charCode int) int {
 	if charCode != 0 {
@@ -43,9 +49,13 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 	switch req.Method {
 	case "onActivate":
 		log.Println("拼音输入法已激活")
+		pime.AddLangButtons(resp, ime.Client, ime.asciiMode, modeIconCommandID, langIconCommandID)
+		resp.ReturnValue = 1
 
 	case "onDeactivate":
 		log.Println("拼音输入法已失活")
+		pime.RemoveLangButtons(resp, ime.Client)
+		resp.ReturnValue = 1
 
 	case "filterKeyDown":
 		return ime.handleKeyDown(req, resp)
@@ -59,7 +69,7 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 		ime.candidates = nil
 
 	case "onCommand":
-		log.Printf("收到命令: %v", req.Data)
+		return ime.onCommand(req, resp)
 	}
 
 	return resp
@@ -69,6 +79,11 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 func (ime *IME) handleKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
 	keyCode := req.KeyCode
 	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
+
+	if ime.asciiMode && ime.pinyin == "" && charCode >= 0x20 {
+		resp.ReturnValue = 0
+		return resp
+	}
 
 	// 处理回车键 - 提交当前拼音
 	if keyCode == 0x0D { // VK_RETURN
@@ -163,6 +178,24 @@ func (ime *IME) handleKeyDown(req *pime.Request, resp *pime.Response) *pime.Resp
 
 	// 不处理的按键
 	resp.ReturnValue = 0
+	return resp
+}
+
+func (ime *IME) onCommand(req *pime.Request, resp *pime.Response) *pime.Response {
+	commandID, ok := req.Data["commandId"].(float64)
+	if !ok {
+		resp.ReturnValue = 0
+		return resp
+	}
+
+	switch int(commandID) {
+	case modeIconCommandID, langIconCommandID:
+		ime.asciiMode = !ime.asciiMode
+		pime.ChangeLangButtons(resp, ime.Client, ime.asciiMode)
+		resp.ReturnValue = 1
+	default:
+		resp.ReturnValue = 0
+	}
 	return resp
 }
 

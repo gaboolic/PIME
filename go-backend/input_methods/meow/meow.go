@@ -15,10 +15,16 @@ type IME struct {
 	compositionString string
 	showCandidates    bool
 	candidateCursor   int
+	asciiMode         bool
 }
 
 // 候选词列表
 var candidates = []string{"喵", "描", "秒", "妙"}
+
+const (
+	modeIconCommandID = 3000
+	langIconCommandID = 3001
+)
 
 func normalizeLetterCharCode(keyCode, charCode int) int {
 	if charCode != 0 {
@@ -73,9 +79,13 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 	switch req.Method {
 	case "onActivate":
 		log.Println("喵喵输入法已激活")
+		pime.AddLangButtons(resp, ime.Client, ime.asciiMode, modeIconCommandID, langIconCommandID)
+		resp.ReturnValue = 1
 
 	case "onDeactivate":
 		log.Println("喵喵输入法已失活")
+		pime.RemoveLangButtons(resp, ime.Client)
+		resp.ReturnValue = 1
 
 	case "filterKeyDown":
 		return ime.filterKeyDown(req, resp)
@@ -93,7 +103,7 @@ func (ime *IME) HandleRequest(req *pime.Request) *pime.Response {
 		ime.candidateCursor = 0
 
 	case "onCommand":
-		log.Printf("收到命令: %v", req.Data)
+		return ime.onCommand(req, resp)
 	}
 
 	return resp
@@ -105,6 +115,11 @@ func (ime *IME) filterKeyDown(req *pime.Request, resp *pime.Response) *pime.Resp
 	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
 
 	if isModifierKey(keyCode) {
+		resp.ReturnValue = 0
+		return resp
+	}
+
+	if ime.asciiMode && ime.compositionString == "" && !ime.showCandidates && isPrintableKey(keyCode, charCode) {
 		resp.ReturnValue = 0
 		return resp
 	}
@@ -162,6 +177,11 @@ func (ime *IME) filterKeyDown(req *pime.Request, resp *pime.Response) *pime.Resp
 func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response {
 	keyCode := req.KeyCode
 	charCode := normalizeLetterCharCode(keyCode, req.CharCode)
+
+	if ime.asciiMode && ime.compositionString == "" && !ime.showCandidates && isPrintableKey(keyCode, charCode) {
+		resp.ReturnValue = 0
+		return resp
+	}
 
 	if isModifierKey(keyCode) {
 		resp.ReturnValue = 0
@@ -277,6 +297,24 @@ func (ime *IME) onKeyDown(req *pime.Request, resp *pime.Response) *pime.Response
 
 	// 其他按键不处理
 	resp.ReturnValue = 0
+	return resp
+}
+
+func (ime *IME) onCommand(req *pime.Request, resp *pime.Response) *pime.Response {
+	commandID, ok := req.Data["commandId"].(float64)
+	if !ok {
+		resp.ReturnValue = 0
+		return resp
+	}
+
+	switch int(commandID) {
+	case modeIconCommandID, langIconCommandID:
+		ime.asciiMode = !ime.asciiMode
+		pime.ChangeLangButtons(resp, ime.Client, ime.asciiMode)
+		resp.ReturnValue = 1
+	default:
+		resp.ReturnValue = 0
+	}
 	return resp
 }
 

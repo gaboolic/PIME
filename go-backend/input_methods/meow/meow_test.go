@@ -216,14 +216,14 @@ func TestOnKeyDownEscapeCancelsComposition(t *testing.T) {
 	if resp.ReturnValue != 1 {
 		t.Fatalf("expected escape to be handled, got %d", resp.ReturnValue)
 	}
-	if resp.CompositionString != "" {
-		t.Fatalf("expected composition to clear, got %q", resp.CompositionString)
+	if resp.CompositionString != "喵" {
+		t.Fatalf("expected composition to remain while closing candidate list, got %q", resp.CompositionString)
 	}
 	if resp.ShowCandidates {
 		t.Fatal("expected candidates to be hidden after escape")
 	}
-	if ime.compositionString != "" || ime.showCandidates {
-		t.Fatal("expected ime state to reset after escape")
+	if ime.compositionString != "喵" || ime.showCandidates {
+		t.Fatal("expected ime state to keep composition but hide candidates after escape")
 	}
 }
 

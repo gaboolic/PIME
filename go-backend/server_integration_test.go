@@ -21,32 +21,32 @@ const testFcitx5GUID = "{D2E4A8B1-6C35-4F90-AB7D-18E2635C9F41}"
 
 func newTestServerWithMeow() *Server {
 	server := NewServer()
-	server.RegisterService(testMeowGUID, func(clientID, guid string) pime.TextService {
-		return meowime.New(&pime.Client{ID: clientID})
+	server.RegisterService(testMeowGUID, func(client *pime.Client, guid string) pime.TextService {
+		return meowime.New(client)
 	})
 	return server
 }
 
 func newTestServerWithSimplePinyin() *Server {
 	server := NewServer()
-	server.RegisterService(testSimplePinyinGUID, func(clientID, guid string) pime.TextService {
-		return simplepinyinime.New(&pime.Client{ID: clientID})
+	server.RegisterService(testSimplePinyinGUID, func(client *pime.Client, guid string) pime.TextService {
+		return simplepinyinime.New(client)
 	})
 	return server
 }
 
 func newTestServerWithRime() *Server {
 	server := NewServer()
-	server.RegisterService(testRimeGUID, func(clientID, guid string) pime.TextService {
-		return rimeime.New(&pime.Client{ID: clientID})
+	server.RegisterService(testRimeGUID, func(client *pime.Client, guid string) pime.TextService {
+		return rimeime.New(client)
 	})
 	return server
 }
 
 func newTestServerWithFcitx5() *Server {
 	server := NewServer()
-	server.RegisterService(testFcitx5GUID, func(clientID, guid string) pime.TextService {
-		return fcitx5ime.New(&pime.Client{ID: clientID})
+	server.RegisterService(testFcitx5GUID, func(client *pime.Client, guid string) pime.TextService {
+		return fcitx5ime.New(client)
 	})
 	return server
 }

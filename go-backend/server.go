@@ -33,7 +33,7 @@ type Client struct {
 }
 
 // ServiceFactory 服务工厂函数
-type ServiceFactory func(clientID string, guid string) pime.TextService
+type ServiceFactory func(client *pime.Client, guid string) pime.TextService
 
 // Server PIME 服务器
 type Server struct {
@@ -207,7 +207,15 @@ func (s *Server) handleRequest(clientID string, req *pime.Request) map[string]in
 		}
 
 		// 创建输入法服务
-		client.Service = factory(clientID, guid)
+		pimeClient := &pime.Client{
+			ID:              clientID,
+			GUID:            guid,
+			IsWindows8Above: req.IsWindows8Above,
+			IsMetroApp:      req.IsMetroApp,
+			IsUiLess:        req.IsUiLess,
+			IsConsole:       req.IsConsole,
+		}
+		client.Service = factory(pimeClient, guid)
 		s.clients[clientID] = client
 
 		// 初始化服务
@@ -366,32 +374,27 @@ func loadInputMethods(server *Server) {
 		switch entry.Name() {
 		case "meow":
 			// 喵喵输入法
-			server.RegisterService(guid, func(clientID, g string) pime.TextService {
-				client := &pime.Client{ID: clientID}
+			server.RegisterService(guid, func(client *pime.Client, g string) pime.TextService {
 				return meow.New(client)
 			})
 		case "rime":
 			// RIME 输入法
-			server.RegisterService(guid, func(clientID, g string) pime.TextService {
-				client := &pime.Client{ID: clientID}
+			server.RegisterService(guid, func(client *pime.Client, g string) pime.TextService {
 				return rime.New(client)
 			})
 		case "simple_pinyin":
 			// 拼音输入法
-			server.RegisterService(guid, func(clientID, g string) pime.TextService {
-				client := &pime.Client{ID: clientID}
+			server.RegisterService(guid, func(client *pime.Client, g string) pime.TextService {
 				return simplepinyin.New(client)
 			})
 		case "fcitx5":
 			// Fcitx5 输入法
-			server.RegisterService(guid, func(clientID, g string) pime.TextService {
-				client := &pime.Client{ID: clientID}
+			server.RegisterService(guid, func(client *pime.Client, g string) pime.TextService {
 				return fcitx5.New(client)
 			})
 		default:
 			// 默认使用拼音输入法
-			server.RegisterService(guid, func(clientID, g string) pime.TextService {
-				client := &pime.Client{ID: clientID}
+			server.RegisterService(guid, func(client *pime.Client, g string) pime.TextService {
 				return simplepinyin.New(client)
 			})
 		}

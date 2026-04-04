@@ -25,34 +25,45 @@ go-backend/
 
 ```bash
 cd go-backend
-go build -o simple_ime.exe ./example/simple_ime
+build.bat
+```
+
+`build.bat` 会生成可直接安装的运行目录：
+
+```text
+build/
+├── backends.go-backend.json
+└── go-backend/
+    ├── server.exe
+    └── input_methods/
 ```
 
 ### 2. 配置 PIME
 
-在 PIME 的 `backends.json` 中添加 Go 后端配置：
+在 PIME 根目录的 `backends.json` 中添加 Go 后端配置。
+
+注意：这个仓库里的 `backends.json` 顶层是数组，不是 `{ "backends": [...] }`。
 
 ```json
-{
-  "backends": [
-    {
-      "name": "go_simple_ime",
-      "command": "C:\\Program Files (x86)\\PIME\\go\\simple_ime.exe",
-      "params": "-n simple"
-    }
-  ]
-}
+[
+  {
+    "name": "go-backend",
+    "command": "go-backend\\server.exe",
+    "workingDir": "go-backend",
+    "params": ""
+  }
+]
 ```
 
 ### 3. 注册输入法
 
-创建 `ime.json` 文件：
+确保 `C:\Program Files (x86)\PIME\go-backend\input_methods\*\ime.json` 存在。比如：
 
 ```json
 {
   "name": "GoSimpleIME",
   "icon": "icon.ico",
-  "backend": "go_simple_ime"
+  "backend": "go-backend"
 }
 ```
 

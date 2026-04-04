@@ -50,20 +50,26 @@ All parts are licensed under GNU LGPL v2.1 license.
 *   [Creating a DACL](http://msdn.microsoft.com/en-us/library/windows/apps/ms717798.aspx)
 
 # Install
-*   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x86\.
-*   Copy `PIMETextService.dll` to C:\Program Files (X86)\PIME\x64\.
+*   Copy `backends.json` to `C:\Program Files (X86)\PIME\`
+*   Copy `PIMELauncher.exe` to `C:\Program Files (X86)\PIME\`
+*   Copy `PIMETextService.dll` to `C:\Program Files (X86)\PIME\x86\`
+*   Copy `PIMETextService.dll` to `C:\Program Files (X86)\PIME\x64\`
 *   Copy the folder `python` to `C:\Program Files (X86)\PIME\`
 *   Copy the folder `node` to `C:\Program Files (X86)\PIME\`
-*   Use `regsvr32` to register `PIMETextService.dll`. 64-bit system need to register both 32-bit and 64-bit `PIMETextService.dll`
+*   Copy the folder `go-backend` to `C:\Program Files (X86)\PIME\` when using the Go backend
+*   `backends.json` must exist before registration so `PIMETextService.dll` can discover backend directories and `input_methods\*\ime.json`
+*   Use `regsvr32` to register `PIMETextService.dll`. A 64-bit system needs to register both 32-bit and 64-bit `PIMETextService.dll`
 
         regsvr32 "C:\Program Files (X86)\PIME\x86\PIMETextService.dll" (run as administrator)
         regsvr32 "C:\Program Files (X86)\PIME\x64\PIMETextService.dll" (run as administrator)
 
+*   Start `PIMELauncher.exe` after copying and registration, or add it to startup so backend processes can be launched automatically
 *   NOTICE: the `regsvr32` command needs to be run as Administrator. Otherwise you'll get access denied error.
 *   In Windows 8, if you put the dlls in places other than C:\Windows or C:\Program Files, they will not be accessible in metro apps.
 
 # Uninstall
-*   Use `regsvr32` to unregister `PIMETextService.dll`. 64-bit system need to unregister both 32-bit and 64-bit `PIMETextService.dll`
+*   Stop `PIMELauncher.exe`
+*   Use `regsvr32` to unregister `PIMETextService.dll`. A 64-bit system needs to unregister both 32-bit and 64-bit `PIMETextService.dll`
 
         regsvr32 /u "C:\Program Files (X86)\PIME\x86\PIMETextService.dll" (run as administrator)
         regsvr32 /u "C:\Program Files (X86)\PIME\x64\PIMETextService.dll" (run as administrator)

@@ -1,0 +1,49 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260404210506
+Username: GBL-COMPUTER\gbl
+RunAs User: GBL-COMPUTER\gbl
+Configuration Name: 
+Machine: GBL-COMPUTER (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -Command Start-Transcript -Path 'D:\vscode\moqi-input-method-projs\PIME\install-run.log' -Force; & 'D:\vscode\moqi-input-method-projs\PIME\install.ps1'; Stop-Transcript
+Process ID: 3000
+PSVersion: 5.1.26100.7920
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7920
+BuildVersion: 10.0.26100.7920
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is D:\vscode\moqi-input-method-projs\PIME\install-run.log
+=== PIME 输入法安装 ===
+创建安装目录...
+✓ 目录创建完成
+
+复制 backends.json...
+✓ backends.json 复制完成
+
+复制 PIMELauncher.exe...
+✓ PIMELauncher.exe 复制完成
+
+复制 DLL 文件...
+PS>TerminatingError(Copy-Item): "The process cannot access the file 'C:\Program Files (x86)\PIME\x64\PIMETextService.dll' because it is being used by another process."
+>> TerminatingError(Copy-Item): "The process cannot access the file 'C:\Program Files (x86)\PIME\x64\PIMETextService.dll' because it is being used by another process."
+>> TerminatingError(Copy-Item): "The process cannot access the file 'C:\Program Files (x86)\PIME\x64\PIMETextService.dll' because it is being used by another process."
+>> TerminatingError(Copy-Item): "The process cannot access the file 'C:\Program Files (x86)\PIME\x64\PIMETextService.dll' because it is being used by another process."
+The process cannot access the file 'C:\Program Files (x86)\PIME\x64\PIMETextService.dll' because it is being used by another process.
+Copy-Item : The process cannot access the file 'C:\Program Files (x86)\PIME\x64\PIMETextService.dll' because it is bein
+g used by another process.
+At D:\vscode\moqi-input-method-projs\PIME\install.ps1:186 char:5
++     Copy-Item -LiteralPath $X64DllSource -Destination $X64DllDest -Fo ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Copy-Item], IOException
+    + FullyQualifiedErrorId : System.IO.IOException,Microsoft.PowerShell.Commands.CopyItemCommand
+
+PS>$global:?
+False
+**********************
+Windows PowerShell transcript end
+End time: 20260404210506
+**********************

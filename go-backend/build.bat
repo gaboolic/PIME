@@ -1,103 +1,134 @@
 @echo off
-chcp 65001 >nul
-setlocal enabledelayedexpansion
+setlocal
 
 echo ============================================
-echo  PIME Go 后端构建脚本
+echo  PIME Go Backend Build Script
 echo ============================================
 echo.
 
-REM 检查 Go 环境
+set "ROOT_DIR=%~dp0"
+if "%ROOT_DIR:~-1%"=="\" set "ROOT_DIR=%ROOT_DIR:~0,-1%"
+set "BUILD_ROOT=%ROOT_DIR%\build"
+set "PACKAGE_DIR=%BUILD_ROOT%\go-backend"
+set "SERVER_EXE=%PACKAGE_DIR%\server.exe"
+set "BACKEND_SNIPPET=%BUILD_ROOT%\backends.go-backend.json"
+
+REM Check Go environment
 where go >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [错误] 未找到 Go 环境，请先安装 Go
-    echo 下载地址: https://golang.org/dl/
+if errorlevel 1 (
+    echo [ERROR] Go was not found in PATH.
+    echo Install Go from: https://golang.org/dl/
     exit /b 1
 )
 
 for /f "tokens=3" %%i in ('go version') do (
-    echo [信息] Go 版本: %%i
-)
-
-REM 设置构建参数
-set BUILD_DIR=build
-set EXAMPLE_NAME=simple_ime
-set EXAMPLE_DIR=example\%EXAMPLE_NAME%
-
-echo.
-echo ============================================
-echo 步骤 1: 准备构建目录
-echo ============================================
-echo.
-
-if not exist %BUILD_DIR% (
-    mkdir %BUILD_DIR%
-    echo [信息] 创建构建目录: %BUILD_DIR%
-) else (
-    echo [信息] 构建目录已存在: %BUILD_DIR%
-    del /q %BUILD_DIR%\* >nul 2>nul
+    echo [INFO] Go version: %%i
 )
 
 echo.
 echo ============================================
-echo 步骤 2: 下载依赖
+echo Step 1: Prepare output directory
 echo ============================================
 echo.
 
-cd /d "%~dp0"
-go mod tidy
-if %errorlevel% neq 0 (
-    echo [警告] go mod tidy 执行失败，继续构建...
+if exist "%PACKAGE_DIR%" (
+    echo [INFO] Removing old build output: "%PACKAGE_DIR%"
+    rmdir /s /q "%PACKAGE_DIR%"
 )
 
-echo.
-echo ============================================
-echo 步骤 3: 构建示例程序
-echo ============================================
-echo.
-
-echo [信息] 构建 %EXAMPLE_NAME% ...
-
-set GOOS=windows
-set GOARCH=amd64
-set CGO_ENABLED=0
-
-go build -ldflags="-s -w" -o %BUILD_DIR%\%EXAMPLE_NAME%.exe %EXAMPLE_DIR%
-
-if %errorlevel% neq 0 (
-    echo [错误] 构建失败！
+mkdir "%PACKAGE_DIR%"
+if errorlevel 1 (
+    echo [ERROR] Failed to create output directory: "%PACKAGE_DIR%"
     exit /b 1
 )
 
-echo [成功] 构建完成: %BUILD_DIR%\%EXAMPLE_NAME%.exe
+echo [INFO] Output directory: "%PACKAGE_DIR%"
 
 echo.
 echo ============================================
-echo 步骤 4: 复制配置文件
+echo Step 2: Sync Go dependencies
 echo ============================================
 echo.
 
-if exist %EXAMPLE_DIR%\ime.json (
-    copy %EXAMPLE_DIR%\ime.json %BUILD_DIR% >nul
-    echo [信息] 复制 ime.json
-)
-
-if exist %EXAMPLE_DIR%\icon.ico (
-    copy %EXAMPLE_DIR%\icon.ico %BUILD_DIR% >nul
-    echo [信息] 复制 icon.ico
+pushd "%ROOT_DIR%"
+go mod tidy
+if errorlevel 1 (
+    echo [WARN] go mod tidy failed, continuing...
 )
 
 echo.
 echo ============================================
-echo 构建完成！
+echo Step 3: Build go-backend server
 echo ============================================
 echo.
-echo 输出目录: %CD%\%BUILD_DIR%
-echo 可执行文件: %EXAMPLE_NAME%.exe
+
+set "GOOS=windows"
+set "GOARCH=amd64"
+
+echo [INFO] Building server.exe ...
+go build -ldflags "-s -w" -o "%SERVER_EXE%" .
+if errorlevel 1 (
+    echo [ERROR] Failed to build server.exe
+    popd
+    exit /b 1
+)
+
+echo [INFO] Built: "%SERVER_EXE%"
+
 echo.
-echo 使用说明:
-echo 1. 将 %BUILD_DIR% 目录复制到 PIME 的 go 目录
-echo 2. 在 backends.json 中添加后端配置
-echo 3. 重启 PIME 服务
+echo ============================================
+echo Step 4: Copy input_methods
+echo ============================================
 echo.
-pause
+
+if not exist "%ROOT_DIR%\input_methods" (
+    echo [ERROR] Missing input_methods directory: "%ROOT_DIR%\input_methods"
+    popd
+    exit /b 1
+)
+
+xcopy "%ROOT_DIR%\input_methods" "%PACKAGE_DIR%\input_methods\" /E /I /Y >nul
+if errorlevel 1 (
+    echo [ERROR] Failed to copy input_methods
+    popd
+    exit /b 1
+)
+
+echo [INFO] input_methods copied
+
+echo.
+echo ============================================
+echo Step 5: Generate backends.json snippet
+echo ============================================
+echo.
+
+> "%BACKEND_SNIPPET%" echo [
+>> "%BACKEND_SNIPPET%" echo   {
+>> "%BACKEND_SNIPPET%" echo     "name": "go-backend",
+>> "%BACKEND_SNIPPET%" echo     "command": "go-backend\\server.exe",
+>> "%BACKEND_SNIPPET%" echo     "workingDir": "go-backend",
+>> "%BACKEND_SNIPPET%" echo     "params": ""
+>> "%BACKEND_SNIPPET%" echo   }
+>> "%BACKEND_SNIPPET%" echo ]
+
+echo [INFO] Generated: "%BACKEND_SNIPPET%"
+popd
+
+echo.
+echo ============================================
+echo Build completed
+echo ============================================
+echo.
+echo Output directory:
+echo   "%PACKAGE_DIR%"
+echo.
+echo Install target:
+echo   C:\Program Files (x86)\PIME\go-backend
+echo.
+echo Notes:
+echo 1. backends.json in this repo uses a top-level array.
+echo 2. Ensure C:\Program Files (x86)\PIME\backends.json includes go-backend.
+echo 3. Ensure C:\Program Files (x86)\PIME\go-backend\input_methods\*\ime.json exists.
+echo 4. Re-register both PIMETextService.dll files after copying.
+echo 5. Start or restart PIMELauncher.exe after install.
+echo.
